@@ -1,12 +1,12 @@
 [Unit]
-Description=getpublicip.sh: get public ip address from ipinfo.io
+Description=getpublicIP.sh: get public ip address from ipinfo.io
 After=network.target
 
 [Service]
 User=root
 Group=root
 Type=simple
-ExecStart=/usr/local/bin/getpublicip.sh
+ExecStart=/usr/local/bin/getpublicIP.sh
 ExecStartPost=/bin/sleep 5
 Restart=always
 
