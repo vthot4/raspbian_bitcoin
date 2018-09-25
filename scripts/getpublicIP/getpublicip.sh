@@ -1,5 +1,11 @@
 #!/bin/bash
-##################################################################3
+###########################################################################################
+##      
+##      Author:  dlightning team
+##      Project: dlightning 
+##      Version: v0.2 (genesis)
+##
+##########################################################################################
 # 
 #   Source : RaspiBolt LND Mainnet: script to get public ip address
 #   Usage:  /usr/local/bin/getpublicip.sh
@@ -37,9 +43,10 @@
 
 
 TIME_WAIT=600
+RESULT="/run/publicip"
 
 while [ 0 ];
     do
-    printf "PUBLICIP=$(curl -vv ipinfo.io/ip 2> /run/publicip.log)\n" > /run/publicip;
+    printf "PUBLICIP=$(curl -vv ipinfo.io/ip 2> /run/publicip.log)\n" > ${RESULT};
     sleep ${TIME_WAIT}
 done;
