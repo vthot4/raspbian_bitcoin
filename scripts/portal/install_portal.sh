@@ -7,8 +7,7 @@
 ##
 ###########################################################################################
 #
-#   Description: Install getpublicIP.sh
-
+#
 ##--- VARIABLES ---##
 
 ## Execution trace variables
@@ -23,18 +22,3 @@ function log ()
     test $TRAZA -ne 1 || echo -e $@
     test $TRAZA_LOG -ne 1 || echo -e "$NC [$(date +"%D %T")] $@" >> $LOG
 }
-
-## Distribute script and configuration files.
-sudo cp ./getpublicIP.sh /usr/local/bin/getpublicIP.sh
-sudo chmod +x /usr/local/bin/getpublicIP.sh
-sudo cp ./getpublicIP.service /etc/systemd/system/getpublicIP.service
-
-## Enable and star service
-sudo systemctl enable getpublicIP
-sudo systemctl start getpublicIP
-sudo systemctl status getpublicIP
-
-echo " "
-echo "check IP ....."
-sleep 2
-cat /run/publicip

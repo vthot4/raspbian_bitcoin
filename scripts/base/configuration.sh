@@ -7,9 +7,12 @@
 ##
 ###########################################################################################
 #
-#   Description: Install getpublicIP.sh
+#
 
 ##--- VARIABLES ---##
+HOSTNAME=dlnode
+BOOT_WAIT=0
+
 
 ## Execution trace variables
 declare -a LOG="install_$0_$(date +"%F").log"
@@ -24,17 +27,27 @@ function log ()
     test $TRAZA_LOG -ne 1 || echo -e "$NC [$(date +"%D %T")] $@" >> $LOG
 }
 
-## Distribute script and configuration files.
-sudo cp ./getpublicIP.sh /usr/local/bin/getpublicIP.sh
-sudo chmod +x /usr/local/bin/getpublicIP.sh
-sudo cp ./getpublicIP.service /etc/systemd/system/getpublicIP.service
 
-## Enable and star service
-sudo systemctl enable getpublicIP
-sudo systemctl start getpublicIP
-sudo systemctl status getpublicIP
 
-echo " "
-echo "check IP ....."
-sleep 2
-cat /run/publicip
+function change_hostname ()
+{
+    ## Change raspberry PI default hostname
+    log "(..configuration..) change_hostname ..... hostname = $1"
+    sudo raspi-config nonint do_hostname $1 
+}
+
+
+function boot_wait ()
+{
+     ## set to wait until network is available on boot (0 seems to yes)
+    log "(..configuration..) boot_wait ..... set $1"
+    sudo raspi-config nonint do_boot_wait $1
+}
+
+
+
+
+###### ----- MAIN ----- ######
+change_hostname ${HOSTNAME}
+boot_wait ${BOOT_WAIT}
+
