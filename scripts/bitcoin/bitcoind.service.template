@@ -1,0 +1,21 @@
+# /etc/systemd/system/bitcoind.service
+
+[Unit]
+Description=Bitcoin daemon
+Wants=getpublicip.service
+After=getpublicip.service
+
+[Service]
+ExecStartPre=/bin/sh -c 'sleep 30'
+ExecStart=/usr/local/bin/bitcoind -daemon -conf=/home/USER/.bitcoin/bitcoin.conf -pid=/home/USER/.bitcoin/bitcoind.pid
+PIDFile=/home/$B_$B_${B_prueba}/.bitcoin/bitcoind.pid
+User=USER
+Group=USER
+Type=forking
+KillMode=process
+Restart=always
+TimeoutSec=120
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

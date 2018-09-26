@@ -27,6 +27,7 @@ B_URL="https://bitcoin.org/bin/bitcoin-core-${B_VERSION}/test.rc4"
 declare -a LOG="install_$0_$(date +"%F").log"
 TRAZA=1     # Enable trace by screen 
 TRAZA_LOG=1 # Enable trace by log.
+INITIAL_PWD=`pwd`
 
 function log ()
 {
@@ -109,19 +110,25 @@ function install_bitcoin ()
         exit 1
     fi
      log "(..install_bitcoin..) INSTALL ..... Bitcoin install completed OK"
-     cd
+     
 }
 
 function conf_bitcoin ()
 {
+    cd ${INITIAL_PWD}
+    # Bitcoind config
     sudo -u ${B_USER} mkdir /home/${B_USER}/.bitcoin
     sudo cp ./bitcoin.conf /home/${B_USER}/.bitcoin
     sudo chown ${B_USER}:${B_USER} /home/${B_USER}/.bitcoin/bitcoin.conf
     
-
+    # Bitcoin service configure (start and enable with systemd)
+    sed "s/USER/${B_USER}/g" ./bitcoind.service.template >> bitcoind.service
+    sudo cp  bitcoind.service /etc/systemd/system/
+    sudo systemctl enable bitcoind.service
 }
 
 ## --- MAIN --- ##
 
 create_user ${B_USER} ${B_USER_PASS}
 install_bitcoin
+conf_bitcoin
