@@ -10,10 +10,17 @@
 #
 ##--- VARIABLES ---##
 
+LND_VERSION=v0.5-beta
+LND_VERSION_CHECK=0.5.0-beta
+LND_USER=dladm
+LND_URL="https://github.com/lightningnetwork/lnd/releases/download/${LND_VERSION}"
+
 ## Execution trace variables
 declare -a LOG="install_$0_$(date +"%F").log"
 TRAZA=1     # Enable trace by screen 
 TRAZA_LOG=1 # Enable trace by log.
+INITIAL_PWD=`pwd`
+PGP_KEY="BD599672C804AF2770869A048B80CD2BB8BD8132"
 
 function log ()
 {
@@ -23,81 +30,87 @@ function log ()
     test $TRAZA_LOG -ne 1 || echo -e "$NC [$(date +"%D %T")] $@" >> $LOG
 }
 
-function install_bitcoin ()
-{   
-    # Set version of bitcoin
-    B_VERSION="0.17.0"
-    laanwjPGP="01EA5486DE18A882D4C2684590C8019E36C2E964"
-    B_USER=dladm
-    B_HOME=/home/${B_USER}/
-    B_URL="https://bitcoin.org/bin/bitcoin-core-${B_VERSION}/test.rc4"
-
-    log "(..install_bitcoin..) Install bitcoin version ${B_VERSION}."
-    
-    # prepare directories
-    sudo -u ${B_USER} mkdir -p ${HOME}/source
-    cd /home/${B_USER}/source
-
-    # download resources
-    sudo -u ${B_USER} wget ${B_URL}/bitcoin-${B_VERSION}rc4-arm-linux-gnueabihf.tar.gz
-    if [ ! -f "./bitcoin-${B_VERSION}rc4-arm-linux-gnueabihf.tar.gz" ]
+function check_exist ()
+{
+    if [ ! -f "./$1" ]
     then
-        log "(..install_bitcoin..) !!! FAIL !!! Download BITCOIN BINARY not success."
+        log "(..install_bitcoin..) Download $1 not success"
         exit 1
     fi
-    sudo -u ${B_USER} wget ${B_URL}/SHA256SUMS.asc
-    if [ ! -f "./SHA256SUMS.asc" ]
-    then
-        log "(..install_bitcoin..) !!! FAIL !!! Download SHA256SUMS.asc not success."
-        exit 1
-    fi
-    sudo -u ${B_USER} wget https://bitcoin.org/laanwj-releases.asc
-    if [ ! -f "./laanwj-releases.asc" ]
-    then
-        log "(..install_bitcoin..) !!! FAIL !!! Download laanwj-releases.asc not success."
-        exit 1
-    fi
-
-    # test checksum
-    checksum=$(sha256sum --check SHA256SUMS.asc --ignore-missing 2>/dev/null | grep '.tar.gz: La suma coincide' -c)
-    if [ ${checksum} -lt 1 ]; then
-        echo ""
-        log "(..install_bitcoin..) !!! BUILD FAILED --> Bitcoin download checksum not OK"
-        exit 1
-    fi
-
-    # check gpg finger print
-    fingerprint=$(gpg laanwj-releases.asc 2>/dev/null | grep "${laanwjPGP}" -c)
-    if [ ${fingerprint} -lt 1 ]; then
-        echo ""
-        log "(..install_bitcoin..) !!! BUILD FAILED --> Bitcoin download PGP author not OK"
-        exit 1
-    fi
-
-    gpg --import ./laanwj-releases.asc
-    verifyResult=$(gpg --verify SHA256SUMS.asc 2>&1)
-    goodSignature=$(echo ${verifyResult} | grep 'Good signature' -c)
-    echo "goodSignature(${goodSignature})"
-    correctKey=$(echo ${verifyResult} |  grep "using RSA key ${laanwjPGP: -16}" -c)
-    echo "correctKey(${correctKey})"
-    
-    if [ ${correctKey} -lt 1 ] || [ ${goodSignature} -lt 1 ]; then
-        echo ""
-        log "(..install_bitcoin..) !!! BUILD FAILED --> LND PGP Verify not OK / signatute(${goodSignature}) verify(${correctKey})"
-        exit 1
-    fi
-
-    # install
-    sudo -u ${B_USER} tar -xvf ./bitcoin-${B_VERSION}rc4-arm-linux-gnueabihf.tar.gz
-    sudo install -m 0755 -o root -g root -t /usr/local/bin bitcoin-${B_VERSION}/bin/*
-    sleep 3
-    installed=$(sudo -u ${B_USER} bitcoind --version | grep "${B_VERSION}" -c)
-    if [ ${installed} -lt 1 ]; then
-        echo ""
-        log "(..install_bitcoin..) !!! BUILD FAILED --> Was not able to install bitcoind version(${B_VERSION})"
-        exit 1
-    fi
-
+    log "(..install_bitcoin..) Download $1 success OK"
 }
 
 
+function install_lnd ()
+{   
+    og "(..install_bitcoin..) Install LND version ${LND_VERSION}"
+
+    cd /home/${LND_USER}/source
+
+    ## Download resources for installation
+
+    sudo -u ${LND_USER} wget ${LND_URL}/lnd-linux-armv7-${LND_VERSION}.tar.gz
+    check_exist lnd-linux-armv7-${LND_VERSION}.tar.gz
+    sudo -u ${LND_USER} wget ${LND_URL}/manifest-${LND_VERSION}.txt
+    check_exist manifest-${LND_VERSION}.txt
+
+    checksum=$(sha256sum --check manifest-${LND_VERSION}.txt --ignore-missing 2>/dev/null | grep '.tar.gz: OK' -c)
+    if [ ${checksum} -lt 1 ]; then
+         log "(..install_lnd..) CHECKSUM FAILED ..... LND download checksum not OK"
+         exit 1
+    fi
+
+    sudo -u ${LND_USER} wget ${LND_URL}/manifest-${LND_VERSION}.txt.sig   
+    check_exist manifest-${LND_VERSION}.txt.sig
+    sudo -u ${LND_USER}  wget https://keybase.io/roasbeef/pgp_keys.asc
+
+    # check gpg finger print
+    fingerprint=$(gpg ./pgp_keys.asc 2>/dev/null | grep "${PGP_KEY}" -c)
+    if [ ${fingerprint} -lt 1 ]; then
+        log "(..install_lnd..) FINGER PRINT ..... LND download PGP author not OK"
+        exit 1
+    fi
+
+    gpg --import ./pgp_keys.asc
+    verifyResult=$(gpg --verify manifest-${LND_VERSION}.txt.sig 2>&1)
+    goodSignature=$(echo ${verifyResult} | grep 'Good signature' -c)
+    echo "goodSignature(${goodSignature})"
+    correctKey=$(echo ${verifyResult} |  grep "using RSA key ${PGP_KEY_R: -28}" -c)
+    echo "correctKey(${correctKey})"
+    if [ ${correctKey} -lt 1 ] || [ ${goodSignature} -lt 1 ]; then
+        log "(..install_lnd..) PGP verification ..... PGP not OK"
+        ## ToDo .....
+        ##exit 1
+    fi
+
+    # Install lnd software
+
+    sudo -u ${LND_USER} tar -xvf lnd-linux-armv7-${LND_VERSION}.tar.gz
+    sudo install -m 0755 -o root -g root -t /usr/local/bin lnd-linux-armv7-${LND_VERSION}/*
+    sleep 5
+    installed=$(sudo -u ${LND_USER} lnd --version | grep "${LND_VERSION_CHECK}" -c)
+    if [ ${installed} -lt 1 ]; then
+        log "(..install_lnd..) INSTALL ..... LND install FAILED"
+        exit 1
+    fi
+     log "(..install_lnd..) INSTALL ..... LND install completed OK"
+
+}
+
+function conf_lnd ()
+{
+    cd ${INITIAL_PWD}
+    log "(..install_lnd..) CONFIGURE ..... Configuring lnd"
+    sudo -u ${LND_USER} mkdir /home/${LND_USER}/.lnd
+    sudo cp ./lnd.conf /home/${LND_USER}/.lnd
+    sudo chown ${LND_USER}:${LND_USER} /home/${LND_USER}/.lnd/lnd.conf
+    
+    # Bitcoin service configure (start and enable with systemd)
+    sed "s/USER/${LND_USER}/g" ./lnd.service.template >> lnd.service
+    sudo cp  lnd.service /etc/systemd/system/
+    sudo systemctl enable lnd.service
+
+}
+
+install_lnd
+conf_lnd

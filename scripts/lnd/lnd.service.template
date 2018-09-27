@@ -1,0 +1,25 @@
+[Unit]
+Description=LND Lightning Daemon
+Wants=bitcoind.service
+After=bitcoind.service
+
+# for use with sendmail alert
+#OnFailure=systemd-sendmail@%n
+
+[Service]
+# get var PUBIP from file
+EnvironmentFile=/run/publicip
+
+ExecStart=/usr/local/bin/lnd --externalip=${PUBLICIP}
+PIDFile=/home/USER/.lnd/lnd.pid
+User=USER
+Group=USER
+LimitNOFILE=128000
+Type=simple
+KillMode=process
+TimeoutSec=180
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

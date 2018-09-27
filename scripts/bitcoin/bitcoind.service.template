@@ -8,7 +8,7 @@ After=getpublicip.service
 [Service]
 ExecStartPre=/bin/sh -c 'sleep 30'
 ExecStart=/usr/local/bin/bitcoind -daemon -conf=/home/USER/.bitcoin/bitcoin.conf -pid=/home/USER/.bitcoin/bitcoind.pid
-PIDFile=/home/$B_$B_${B_prueba}/.bitcoin/bitcoind.pid
+PIDFile=/home/USER/.bitcoin/bitcoind.pid
 User=USER
 Group=USER
 Type=forking
